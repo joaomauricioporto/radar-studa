@@ -144,7 +144,7 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
   #abas-redes button{flex:none}
   .linha-filtros select{flex:1 1 0;min-width:0}
   .hero p{font-size:15px}
-  input[type=search]{min-width:0;max-width:none;width:100%}
+  input[type=search]{min-width:0;max-width:none;width:100%;flex:1 1 100%}
   .lista{grid-template-columns:1fr}
   .card{grid-template-columns:104px 1fr;gap:12px;padding:10px}
   .capa{width:104px}
@@ -165,6 +165,7 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-youtube" viewBox="0 0 24 24"><path fill="#C13B34" d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8z"/><path fill="#fff" d="M9.8 15.1 15.6 12 9.8 8.9z"/></symbol>
   <symbol id="i-shorts" viewBox="0 0 24 24"><path fill="#C13B34" d="M17.8 9.6 16 10.6l1.7.9a4.4 4.4 0 0 1-.4 7.9l-6.6 3.4a4.4 4.4 0 0 1-4-7.8l1.7-.9-1.7-.9a4.4 4.4 0 0 1 .4-7.9L13.7.9a4.4 4.4 0 0 1 4 7.8z"/><path fill="#fff" d="M10 15.2 15 12l-5-3.2z"/></symbol>
+  <symbol id="i-instagram" viewBox="0 0 24 24"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="none" stroke="#C13584" stroke-width="2.2"/><circle cx="12" cy="12" r="4.3" fill="none" stroke="#C13584" stroke-width="2.2"/><circle cx="17.4" cy="6.6" r="1.4" fill="#C13584"/></symbol>
   <symbol id="i-tiktok" viewBox="0 0 24 24"><path fill="#1C1B19" d="M16.6 2h-3.4v13.6a2.9 2.9 0 1 1-2.1-2.8V9.3a6.3 6.3 0 1 0 5.5 6.3V8.7a7.8 7.8 0 0 0 4.4 1.4V6.7a4.4 4.4 0 0 1-4.4-4.7z"/></symbol>
 </svg>
 <div class="app">
@@ -179,7 +180,7 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
     <div class="rodape">
       <a id="l-buscar" target="_blank" rel="noopener">Buscar agora ↗</a>
       <a id="l-temas" target="_blank" rel="noopener">Editar temas ↗</a>
-      <span class="status">YouTube, Shorts e TikTok</span>
+      <span class="status">Instagram, TikTok, YouTube e Shorts</span>
     </div>
   </aside>
 
@@ -270,6 +271,7 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
   ["l-temas", "b-temas"].forEach(function (id) { document.getElementById(id).href = LINKS.temas; });
 
   var REDES = {
+    instagram: { nome: "Instagram", seg: "seguidores" },
     youtube: { nome: "YouTube", seg: "inscritos" },
     shorts: { nome: "Shorts", seg: "inscritos" },
     tiktok: { nome: "TikTok", seg: "seguidores" }
@@ -396,8 +398,6 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
       : "Nenhum vídeo novo desde a busca anterior; os que estão no radar continuam abaixo.";
     if (forte) frase += " O mais forte teve <span class=\"grifo\">" + mult(forte.multiplicador) + "</span> mais views do que o perfil tem de " + seg(forte) + " (" + (REDES[forte.rede] || {}).nome + ").";
     resumo.innerHTML = frase;
-    var porRede = { youtube: 0, shorts: 0, tiktok: 0 };
-    vs.forEach(function (v) { porRede[v.rede] = (porRede[v.rede] || 0) + 1; });
     numeros.innerHTML =
       "<div class=\"num azul\"><b>" + novos.length + "</b><span>novos</span></div>" +
       "<div class=\"num azul\"><b>" + (forte ? mult(forte.multiplicador) : "–") + "</b><span>o mais forte</span></div>" +
@@ -408,7 +408,7 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
 
   function temasTodos() {
     var d = estado.dados || {}, lista = (d.temas || []).slice();
-    (d.temas_tiktok || []).forEach(function (t) { if (!lista.some(function (x) { return x.toLowerCase() === t.toLowerCase(); })) lista.push(t); });
+    (d.temas_tiktok || []).concat(d.temas_instagram || []).forEach(function (t) { if (!lista.some(function (x) { return x.toLowerCase() === t.toLowerCase(); })) lista.push(t); });
     return lista;
   }
 
@@ -419,7 +419,7 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
       "<li>Cole no GitHub com o nome <code>YOUTUBE_API_KEY</code>: <a href=\"" + LINKS.segredo + "\" target=\"_blank\" rel=\"noopener\">abrir</a>.</li>" +
       "<li>Toque em <a href=\"" + LINKS.buscar + "\" target=\"_blank\" rel=\"noopener\">Buscar agora</a> e em <b>Run workflow</b>.</li></ol>";
   }
-  function passosTiktok() {
+  function passosApify() {
     return "<ol>" +
       "<li>Crie uma conta grátis na Apify: <a href=\"" + LINKS.apify + "\" target=\"_blank\" rel=\"noopener\">abrir</a> (o plano grátis dá US$ 5 por mês).</li>" +
       "<li>Copie o token em <a href=\"" + LINKS.apifyToken + "\" target=\"_blank\" rel=\"noopener\">API &amp; Integrations</a>.</li>" +
@@ -429,14 +429,22 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
 
   function renderAviso() {
     var d = estado.dados, el = document.getElementById("aviso"), html = "";
+    var porApify = " O TikTok e o Instagram não abrem esses dados; o radar usa a Apify, um serviço de coleta.";
     if (!d && estado.erroCarga) {
       html = "<div class=\"aviso\"><b>Falta ligar a busca do YouTube e dos Shorts.</b>" + passosYoutube() + "</div>" +
-             "<div class=\"aviso\"><b>Falta ligar a busca do TikTok.</b> O TikTok não abre os dados dele; o radar usa a Apify, um serviço de coleta." + passosTiktok() + "</div>";
+             "<div class=\"aviso\"><b>Falta ligar a busca do TikTok e do Instagram.</b>" + porApify + passosApify() + "</div>";
     } else if (d) {
-      (d.avisos || []).forEach(function (a) {
-        var yt = a.fonte === "youtube", nome = yt ? "do YouTube e dos Shorts" : "do TikTok";
-        var passos = yt ? passosYoutube() : passosTiktok();
-        if (a.status === "sem_chave") html += "<div class=\"aviso\"><b>Falta ligar a busca " + nome + ".</b>" + (yt ? "" : " O TikTok não abre os dados dele; o radar usa a Apify, um serviço de coleta.") + passos + "</div>";
+      var avisos = (d.avisos || []).slice();
+      var tt = avisos.find(function (a) { return a.fonte === "tiktok"; }), ig = avisos.find(function (a) { return a.fonte === "instagram"; });
+      if (tt && ig && tt.status === ig.status) {
+        avisos = avisos.filter(function (a) { return a !== ig; });
+        tt.fonte = "apify";
+      }
+      avisos.forEach(function (a) {
+        var yt = a.fonte === "youtube";
+        var nome = yt ? "do YouTube e dos Shorts" : a.fonte === "apify" ? "do TikTok e do Instagram" : a.fonte === "instagram" ? "do Instagram" : "do TikTok";
+        var passos = yt ? passosYoutube() : passosApify();
+        if (a.status === "sem_chave") html += "<div class=\"aviso\"><b>Falta ligar a busca " + nome + ".</b>" + (yt ? "" : porApify) + passos + "</div>";
         else if (a.status === "chave_invalida") html += "<div class=\"aviso\"><b>A chave " + nome + " foi recusada.</b> Confira se colou ela inteira. <span class=\"dica\">(" + esc(a.mensagem) + ")</span>" + passos + "</div>";
         else if (a.status === "cota") html += "<div class=\"aviso\"><b>Acabou a cota " + nome + ".</b> " + esc(a.mensagem) + " Os vídeos abaixo são da última busca que deu certo.</div>";
         else html += "<div class=\"aviso\"><b>A busca " + nome + " falhou desta vez.</b> Os vídeos dela são da busca anterior. <span class=\"dica\">(" + esc(a.mensagem) + ")</span></div>";
@@ -456,10 +464,10 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
     document.querySelectorAll("[data-view]").forEach(function (b) { b.classList.toggle("ativo", b.getAttribute("data-view") === estado.view); });
     document.getElementById("ordem").value = estado.ordem;
     document.getElementById("periodo").value = String(estado.periodo);
-    var porRede = { todas: r.porRede.length, youtube: 0, shorts: 0, tiktok: 0 };
+    var porRede = { todas: r.porRede.length, instagram: 0, tiktok: 0, youtube: 0, shorts: 0 };
     r.porRede.forEach(function (v) { porRede[v.rede] = (porRede[v.rede] || 0) + 1; });
     var abas = "<button data-rede=\"todas\" class=\"" + (estado.rede === "todas" ? "ativo" : "") + "\">Todas as redes <i>" + porRede.todas + "</i></button>";
-    ["youtube", "shorts", "tiktok"].forEach(function (k) {
+    ["instagram", "tiktok", "youtube", "shorts"].forEach(function (k) {
       abas += "<button data-rede=\"" + k + "\" class=\"" + (estado.rede === k ? "ativo" : "") + "\">" + icone(k) + REDES[k].nome + " <i>" + porRede[k] + "</i></button>";
     });
     document.getElementById("abas-redes").innerHTML = abas;
@@ -552,8 +560,10 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
 
   // ---------- detalhe ----------
   function embed(v) {
-    if (v.rede === "tiktok") return "https://www.tiktok.com/player/v1/" + encodeURIComponent(v.id) + "?autoplay=1&rel=0";
-    return "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(v.id) + "?autoplay=1&playsinline=1&rel=0";
+    var c = encodeURIComponent(v.codigo || v.id);
+    if (v.rede === "tiktok") return "https://www.tiktok.com/player/v1/" + c + "?autoplay=1&rel=0";
+    if (v.rede === "instagram") return "https://www.instagram.com/reel/" + c + "/embed";
+    return "https://www.youtube-nocookie.com/embed/" + c + "?autoplay=1&playsinline=1&rel=0";
   }
   function abrir(id) {
     var v = acharVideo(id);

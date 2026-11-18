@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Radar do Studa: acha o que mais viralizou no nicho (YouTube, Shorts e TikTok) e grava docs/dados.json.
+"""Radar do Studa: acha o que mais viralizou no nicho (Instagram, TikTok, YouTube e Shorts) e grava docs/dados.json.
 
 Roda todo dia no GitHub Actions (.github/workflows/radar.yml), só com a biblioteca padrão.
 Segredos do repositório:
   YOUTUBE_API_KEY  chave da YouTube Data API v3 (grátis) -> YouTube e Shorts
-  APIFY_TOKEN      token da Apify -> TikTok (o TikTok não tem API aberta para isso)
+  APIFY_TOKEN      token da Apify -> TikTok e Instagram (nenhum dos dois abre esses dados)
 Fonte sem segredo, ou que falhar, não derruba as outras: os vídeos dela da busca
 anterior ficam no site e o motivo aparece num aviso.
 """
@@ -184,6 +184,7 @@ def buscar_youtube(cfg, chave, agora):
         publicado = datetime.fromisoformat(sn["publishedAt"].replace("Z", "+00:00"))
         item = {
             "id": vid,
+            "codigo": vid,
             "rede": rede,
             "titulo": sn.get("title", ""),
             "canal": sn.get("channelTitle", ""),
@@ -206,20 +207,9 @@ def buscar_youtube(cfg, chave, agora):
     return saida
 
 
-# ---------- TikTok (pela Apify) ----------
-def buscar_tiktok(cfg, token, agora):
-    tt = cfg["tiktok"]
-    entrada = {
-        "searchQueries": tt["buscas"],
-        "resultsPerPage": tt["por_busca"],
-        "searchSection": "/video",
-        "proxyCountryCode": cfg["regiao"],
-        "shouldDownloadCovers": False,
-        "shouldDownloadVideos": False,
-        "shouldDownloadSubtitles": False,
-        "shouldDownloadSlideshowImages": False,
-    }
-    url = APIFY + tt["ator"] + "/run-sync-get-dataset-items?" + urllib.parse.urlencode({"token": token, "timeout": 280})
+# ---------- Apify (TikTok e Instagram) ----------
+def apify(ator, entrada, token):
+    url = APIFY + ator + "/run-sync-get-dataset-items?" + urllib.parse.urlencode({"token": token, "timeout": 280})
     try:
         itens = http_json(url, entrada, timeout=300)
     except urllib.error.HTTPError as erro:
@@ -233,7 +223,35 @@ def buscar_tiktok(cfg, token, agora):
         raise FonteFalhou("erro", f"A Apify não respondeu: {erro}")
     if not isinstance(itens, list):
         raise FonteFalhou("erro", "A Apify devolveu algo inesperado.")
+    return itens
 
+
+def data_do_item(it):
+    for campo in ("createTimeISO", "timestamp", "takenAt"):
+        valor = it.get(campo)
+        if isinstance(valor, str) and valor:
+            try:
+                return datetime.fromisoformat(valor.replace("Z", "+00:00"))
+            except ValueError:
+                pass
+    numero = inteiro(it.get("createTime"), it.get("takenAtTimestamp"))
+    return datetime.fromtimestamp(numero, tz=timezone.utc) if numero else None
+
+
+# ---------- TikTok ----------
+def buscar_tiktok(cfg, token, agora):
+    tt = cfg["tiktok"]
+    entrada = {
+        "searchQueries": tt["buscas"],
+        "resultsPerPage": tt["por_busca"],
+        "searchSection": "/video",
+        "proxyCountryCode": cfg["regiao"],
+        "shouldDownloadCovers": False,
+        "shouldDownloadVideos": False,
+        "shouldDownloadSubtitles": False,
+        "shouldDownloadSlideshowImages": False,
+    }
+    itens = apify(tt["ator"], entrada, token)
     limite = agora - timedelta(days=cfg["dias"])
     saida, vistos_aqui = [], set()
     for it in itens:
@@ -243,14 +261,8 @@ def buscar_tiktok(cfg, token, agora):
         vistos_aqui.add(vid)
         autor = it.get("authorMeta") or {}
         meta = it.get("videoMeta") or {}
-        criado = it.get("createTimeISO")
-        if criado:
-            publicado = datetime.fromisoformat(criado.replace("Z", "+00:00"))
-        elif inteiro(it.get("createTime")):
-            publicado = datetime.fromtimestamp(inteiro(it.get("createTime")), tz=timezone.utc)
-        else:
-            continue
-        if publicado < limite:
+        publicado = data_do_item(it)
+        if not publicado or publicado < limite:
             continue
         views = inteiro(it.get("playCount")) or 0
         if views < cfg["views_minimas"]:
@@ -263,7 +275,8 @@ def buscar_tiktok(cfg, token, agora):
         temas = [consulta] if consulta in tt["buscas"] else [b for b in tt["buscas"] if b.lower() in texto.lower()][:2]
         nome = autor.get("name") or ""
         item = {
-            "id": vid,
+            "id": "tt" + vid,
+            "codigo": vid,
             "rede": "tiktok",
             "titulo": texto or "(sem legenda)",
             "canal": autor.get("nickName") or nome,
@@ -286,13 +299,81 @@ def buscar_tiktok(cfg, token, agora):
     return saida
 
 
-def guardar_capas_do_tiktok(videos):
-    """As capas do TikTok expiram em horas e não abrem fora do TikTok: baixa para docs/capas/."""
+# ---------- Instagram ----------
+def buscar_instagram(cfg, token, agora):
+    ig = cfg["instagram"]
+    itens = apify(ig["ator"], {"hashtags": ig["hashtags"], "resultsType": "reels", "resultsLimit": ig["por_hashtag"]}, token)
+    limite = agora - timedelta(days=cfg["dias"])
+    saida, vistos_aqui = [], set()
+    for it in itens:
+        codigo = it.get("shortCode") or it.get("shortcode") or ""
+        if not codigo or codigo in vistos_aqui or it.get("isSponsored"):
+            continue
+        vistos_aqui.add(codigo)
+        publicado = data_do_item(it)
+        if not publicado or publicado < limite:
+            continue
+        views = inteiro(it.get("videoPlayCount"), it.get("videoViewCount"), it.get("playCount")) or 0
+        if views < cfg["views_minimas"]:
+            continue
+        curtidas = max(inteiro(it.get("likesCount")) or 0, 0)  # -1 quando o perfil esconde as curtidas
+        comentarios = inteiro(it.get("commentsCount")) or 0
+        dono = it.get("ownerUsername") or ""
+        hashtags_do_post = [h.lower().lstrip("#") for h in (it.get("hashtags") or [])]
+        origem = (it.get("hashtag") or it.get("searchTerm") or it.get("inputUrl") or "").lower()
+        temas = [h for h in ig["hashtags"] if h.lower() in origem] or [h for h in ig["hashtags"] if h.lower() in hashtags_do_post][:2]
+        saida.append({
+            "id": "ig" + codigo,
+            "codigo": codigo,
+            "rede": "instagram",
+            "titulo": (it.get("caption") or "").strip() or "(sem legenda)",
+            "canal": it.get("ownerFullName") or dono,
+            "handle": ("@" + dono) if dono else "",
+            "avatar": "",
+            "seguidores": None,
+            "views": views,
+            "curtidas": curtidas,
+            "comentarios": comentarios,
+            "compartilhamentos": None,
+            "salvamentos": None,
+            "publicado_em": publicado.isoformat().replace("+00:00", "Z"),
+            "duracao_s": int(float(it.get("videoDuration") or 0)),
+            "thumb": it.get("displayUrl") or "",
+            "url": it.get("url") or f"https://www.instagram.com/reel/{codigo}/",
+            "temas": ["#" + t for t in temas] or ["Instagram"],
+            "_publicado": publicado,
+        })
+
+    # seguidores só dos mais vistos: cada perfil consultado custa crédito
+    donos = []
+    for v in sorted(saida, key=lambda x: x["views"], reverse=True):
+        nome = v["handle"].lstrip("@")
+        if nome and nome not in donos:
+            donos.append(nome)
+        if len(donos) >= ig["perfis_para_multiplicador"]:
+            break
+    seguidores = {}
+    if donos:
+        try:
+            for p in apify(ig["ator_perfis"], {"usernames": donos}, token):
+                nome = (p.get("username") or "").lower()
+                if nome:
+                    seguidores[nome] = inteiro(p.get("followersCount"))
+        except FonteFalhou as erro:
+            print(f"instagram: perfis sem seguidores ({erro})")
+    for v in saida:
+        v["seguidores"] = seguidores.get(v["handle"].lstrip("@").lower())
+        v.update(metricas(v["views"], v["curtidas"], v["comentarios"], v["seguidores"], v.pop("_publicado"), agora, cfg))
+    return saida
+
+
+def guardar_capas(videos):
+    """As capas do TikTok e do Instagram expiram e não abrem fora deles: baixa para docs/capas/."""
     os.makedirs(CAPAS, exist_ok=True)
     for v in videos:
-        if v["rede"] != "tiktok" or not v["thumb"]:
+        if v["rede"] not in ("tiktok", "instagram") or not v["thumb"]:
             continue
-        destino = os.path.join(CAPAS, f"tt-{v['id']}.jpg")
+        destino = os.path.join(CAPAS, f"{v['id']}.jpg")
         origem = v["thumb"]
         if not origem.startswith("http"):
             # capa de uma busca anterior: vem do site publicado
@@ -303,7 +384,7 @@ def guardar_capas_do_tiktok(videos):
             pedido = urllib.request.Request(origem, headers={"User-Agent": NAVEGADOR})
             with urllib.request.urlopen(pedido, timeout=20) as r, open(destino, "wb") as f:
                 f.write(r.read())
-            v["thumb"] = f"capas/tt-{v['id']}.jpg"
+            v["thumb"] = f"capas/{v['id']}.jpg"
         except Exception:  # sem capa o card mostra um fundo liso
             v["thumb"] = ""
 
@@ -323,6 +404,8 @@ def main():
         fontes.append(("youtube", "YOUTUBE_API_KEY", buscar_youtube, ("shorts", "youtube")))
     if redes.get("tiktok", True):
         fontes.append(("tiktok", "APIFY_TOKEN", buscar_tiktok, ("tiktok",)))
+    if redes.get("instagram", True):
+        fontes.append(("instagram", "APIFY_TOKEN", buscar_instagram, ("instagram",)))
 
     videos, avisos = [], []
     for nome, segredo, funcao, redes_da_fonte in fontes:
@@ -336,8 +419,20 @@ def main():
         except FonteFalhou as erro:
             print(f"{nome}: não rodou ({erro.status}) {erro}")
             avisos.append({"fonte": nome, "status": erro.status, "mensagem": str(erro)[:300]})
-            # mantém o que essa fonte trouxe na busca anterior
-            videos += [v for v in anterior.get("videos", []) if v.get("rede") in redes_da_fonte]
+
+    # o que buscas anteriores acharam continua no radar enquanto estiver dentro do período
+    # (os números ficam os da última vez em que o vídeo apareceu)
+    achados_hoje = {v["id"] for v in videos}
+    inicio_do_periodo = agora - timedelta(days=cfg["dias"])
+    for v in anterior.get("videos", []):
+        if v.get("id") in achados_hoje or not redes.get(v.get("rede"), True):
+            continue
+        try:
+            publicado = datetime.fromisoformat(v["publicado_em"].replace("Z", "+00:00"))
+        except (KeyError, ValueError):
+            continue
+        if publicado >= inicio_do_periodo:
+            videos.append(v)
 
     hoje = agora.strftime("%Y-%m-%d")
     for v in videos:
@@ -352,7 +447,7 @@ def main():
 
     videos.sort(key=lambda x: (x["multiplicador"] is not None, x["multiplicador"] or 0, x["views"]), reverse=True)
     videos = videos[: cfg["max_videos_no_site"]]
-    guardar_capas_do_tiktok(videos)
+    guardar_capas(videos)
 
     limite = (agora - timedelta(days=DIAS_NA_MEMORIA)).strftime("%Y-%m-%d")
     vistos = {k: v for k, v in vistos.items() if v.get("p", "") >= limite}
@@ -361,11 +456,12 @@ def main():
 
     algum_ok = len(avisos) < len(fontes)
     saida = {
-        "versao": 2,
+        "versao": 3,
         "nome": cfg["nome"],
         "perfil": cfg["perfil"],
         "temas": cfg["temas"],
         "temas_tiktok": cfg.get("tiktok", {}).get("buscas", []),
+        "temas_instagram": ["#" + h for h in cfg.get("instagram", {}).get("hashtags", [])],
         "redes": redes,
         "dias": cfg["dias"],
         "hora_da_busca": cfg.get("hora_da_busca", "08:00"),

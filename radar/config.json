@@ -1,7 +1,12 @@
 {
   "nome": "João",
   "perfil": "@usestuda",
-  "redes": { "shorts": true, "youtube": true, "tiktok": true },
+  "redes": {
+    "instagram": true,
+    "tiktok": true,
+    "youtube": true,
+    "shorts": true
+  },
   "temas": [
     "estudar para o ENEM",
     "rotina de estudos",
@@ -33,9 +38,20 @@
       "estudar para o enem",
       "rotina de estudos",
       "concurso público",
-      "como estudar",
       "dicas de estudo"
     ],
-    "por_busca": 8
+    "por_busca": 4
+  },
+  "instagram": {
+    "ator": "apify~instagram-hashtag-scraper",
+    "hashtags": [
+      "enem",
+      "concursopublico",
+      "rotinadeestudos",
+      "dicasdeestudo"
+    ],
+    "por_hashtag": 4,
+    "ator_perfis": "apify~instagram-profile-scraper",
+    "perfis_para_multiplicador": 8
   }
 }
