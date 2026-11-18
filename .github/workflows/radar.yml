@@ -1,0 +1,48 @@
+name: Radar
+
+on:
+  schedule:
+    - cron: "7 11 * * *"   # todo dia às 08:07 de Brasília
+  workflow_dispatch:        # botão "Run workflow": buscar agora
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  buscar-e-publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicar.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: pages
+        uses: actions/configure-pages@v6
+
+      - name: Trazer a busca anterior (para saber o que é novo)
+        run: |
+          curl -fsSL "${{ steps.pages.outputs.base_url }}/dados.json" -o /tmp/dados.json && mv /tmp/dados.json docs/dados.json || echo "primeira busca"
+          curl -fsSL "${{ steps.pages.outputs.base_url }}/vistos.json" -o /tmp/vistos.json && mv /tmp/vistos.json docs/vistos.json || true
+
+      - name: Buscar os vídeos do nicho
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          SITE_ANTERIOR: ${{ steps.pages.outputs.base_url }}
+        run: python3 radar/buscar.py
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
+
+      - id: publicar
+        uses: actions/deploy-pages@v5

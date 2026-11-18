@@ -1,0 +1,41 @@
+{
+  "nome": "João",
+  "perfil": "@usestuda",
+  "redes": { "shorts": true, "youtube": true, "tiktok": true },
+  "temas": [
+    "estudar para o ENEM",
+    "rotina de estudos",
+    "concurso público",
+    "como estudar",
+    "redação ENEM",
+    "vestibular",
+    "flashcards",
+    "revisão espaçada",
+    "método pomodoro",
+    "foco nos estudos",
+    "IA para estudar",
+    "app de estudos",
+    "build in public",
+    "criar app com IA"
+  ],
+  "dias": 14,
+  "views_minimas": 5000,
+  "duracao_maxima_short_s": 180,
+  "regiao": "BR",
+  "idioma": "pt",
+  "max_por_tema": 50,
+  "piso_seguidores": 1000,
+  "max_videos_no_site": 300,
+  "hora_da_busca": "08:00",
+  "tiktok": {
+    "ator": "clockworks~tiktok-scraper",
+    "buscas": [
+      "estudar para o enem",
+      "rotina de estudos",
+      "concurso público",
+      "como estudar",
+      "dicas de estudo"
+    ],
+    "por_busca": 8
+  }
+}

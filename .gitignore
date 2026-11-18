@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+docs/dados.json
+docs/vistos.json
+docs/capas/
