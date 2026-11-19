@@ -187,6 +187,7 @@ def buscar_youtube(cfg, chave, agora):
             "codigo": vid,
             "rede": rede,
             "titulo": sn.get("title", ""),
+            "descricao": (sn.get("description") or "").strip()[:600],
             "canal": sn.get("channelTitle", ""),
             "handle": canal.get("snippet", {}).get("customUrl", ""),
             "avatar": miniatura(canal.get("snippet", {}).get("thumbnails")),

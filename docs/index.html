@@ -540,17 +540,22 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
 
   // ---------- ideia pro Studa ----------
   function prompt(v) {
-    return "Analisa esse vídeo que está viralizando no meu nicho e me diz como transformar ele em Reels pro @usestuda. " +
+    var nota = ((estado.salvos[v.id] || {}).nota || "").trim();
+    var desc = (v.descricao || "").trim();
+    return "Quero transformar um vídeo que está viralizando no meu nicho em um Reels pro @usestuda. " +
       "O Studa é um app de estudos para concurseiros e vestibulandos (18+), em pré-lançamento, com lista de espera em studa.app.br.\n\n" +
       "Rede: " + (REDES[v.rede] || {}).nome + "\nVídeo: " + v.titulo + "\nLink: " + v.url +
+      (desc ? "\nDescrição/legenda: " + desc : "") +
       "\nPerfil: " + (v.handle || v.canal) + " (" + num(v.seguidores) + " " + seg(v) + ")" +
       "\nNúmeros: " + num(v.views) + " views (" + mult(v.multiplicador) + " os " + seg(v) + "), " + num(v.curtidas) + " curtidas, " + num(v.comentarios) + " comentários" +
       (v.compartilhamentos != null ? ", " + num(v.compartilhamentos) + " compartilhamentos" : "") +
-      (v.salvamentos != null ? ", " + num(v.salvamentos) + " salvamentos" : "") + ", publicado " + haQuanto(v.publicado_em) + ".\n\n" +
-      "Quero:\n1. Por que ele funcionou: gancho, estrutura e formato. Se não conseguir ver o vídeo, me pergunta o que acontece nos 3 primeiros segundos.\n" +
+      (v.salvamentos != null ? ", " + num(v.salvamentos) + " salvamentos" : "") + ", publicado " + haQuanto(v.publicado_em) + "." +
+      (nota ? "\nPor que vale pra mim: " + nota : "") + "\n\n" +
+      "Você provavelmente não consegue assistir ao vídeo. Não me faça perguntas e não pare: trabalhe com o título, a descrição e os números acima, deduza o formato mais provável e marque o que for suposição com \"(suposição)\". Responda sempre com os 3 itens completos:\n" +
+      "1. Por que ele funcionou: gancho, estrutura e formato (curto, até 5 linhas).\n" +
       "2. Três ganchos para o meu Reels.\n" +
       "3. Um roteiro de 20 a 30 segundos com fala e texto na tela, fechando com a chamada para a lista de espera em studa.app.br.\n\n" +
-      "Regras: não inventar números, depoimentos nem resultados; não prometer nota ou aprovação; a Sina (tutora do app) pergunta e nunca entrega a resposta; foto da questão e voz são \"em breve\".";
+      "Regras: o Reels deve funcionar com as minhas próprias palavras e imagens, sem reutilizar trecho, imagem, voz ou nome de terceiros (recrie a ideia, sem copiar); não inventar números, depoimentos nem resultados; não prometer nota ou aprovação; a Sina (tutora do app) pergunta e nunca entrega a resposta; foto da questão e voz são \"em breve\".";
   }
   function copiar(texto) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
