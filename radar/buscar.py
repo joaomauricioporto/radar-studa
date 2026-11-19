@@ -140,8 +140,10 @@ def buscar_youtube(cfg, chave, agora):
         return []
     desde = (agora - timedelta(days=cfg["dias"])).strftime("%Y-%m-%dT%H:%M:%SZ")
     temas_por_video = {}
-    for tema in cfg["temas"] + cfg.get("temas_apps", []):
-        for duracao in duracoes:
+    todos = [(t, duracoes) for t in cfg["temas"]] + [
+        (t, [d for d in duracoes if d in cfg.get("duracoes_apps", ["short", "medium", "long"])]) for t in cfg.get("temas_apps", [])]
+    for tema, duracoes_do_tema in todos:
+        for duracao in duracoes_do_tema:
             r = youtube("search", chave, part="id", q=tema, type="video", order="viewCount",
                         publishedAfter=desde, regionCode=cfg["regiao"], relevanceLanguage=cfg["idioma"],
                         videoDuration=duracao, maxResults=min(50, cfg["max_por_tema"]), safeSearch="moderate")
@@ -405,9 +407,15 @@ def main():
     fontes = []
     if redes.get("shorts", True) or redes.get("youtube", True):
         fontes.append(("youtube", "YOUTUBE_API_KEY", buscar_youtube, ("shorts", "youtube")))
-    if redes.get("tiktok", True):
+    # TikTok e Instagram gastam crédito do Apify: na busca automática rodam a cada N dias
+    # (o que já foi achado continua no radar). "Buscar agora" manual sempre busca tudo.
+    a_cada = max(1, int(cfg.get("apify_a_cada_dias", 1)))
+    pular_apify = os.environ.get("GITHUB_EVENT_NAME") == "schedule" and agora.timetuple().tm_yday % a_cada != 0
+    if pular_apify:
+        print(f"TikTok e Instagram: pulados hoje (rodam a cada {a_cada} dias)")
+    if redes.get("tiktok", True) and not pular_apify:
         fontes.append(("tiktok", "APIFY_TOKEN", buscar_tiktok, ("tiktok",)))
-    if redes.get("instagram", True):
+    if redes.get("instagram", True) and not pular_apify:
         fontes.append(("instagram", "APIFY_TOKEN", buscar_instagram, ("instagram",)))
 
     videos, avisos = [], []

@@ -42,8 +42,12 @@
     "buscas_apps": [
       "build in public",
       "criar app com IA",
+      "vibe coding",
       "criando um SaaS",
-      "fundador de startup"
+      "fundador de startup",
+      "app que fatura",
+      "ferramentas de IA",
+      "marketing de app"
     ]
   },
   "instagram": {
@@ -61,20 +65,46 @@
       "buildinpublic",
       "indiehacker",
       "saas",
-      "startupbrasil"
+      "microsaas",
+      "startupbrasil",
+      "vibecoding",
+      "criadordeapps",
+      "ferramentasdeia",
+      "empreendedorismodigital",
+      "appdev"
     ]
   },
   "temas_apps": [
     "build in public",
     "criar app com IA",
+    "vibe coding",
     "como criei meu app",
     "criar um SaaS",
+    "micro SaaS",
+    "SaaS do zero",
     "app que fatura",
+    "renda com aplicativo",
     "indie hacker Brasil",
     "fundador de startup",
     "lançando meu app",
-    "SaaS do zero",
+    "MVP startup",
+    "validar ideia de app",
+    "app sem programar",
+    "no code app",
+    "ferramentas de IA",
+    "IA para empreender",
+    "marketing de app",
+    "como divulgar app",
+    "primeiros usuários do app",
+    "app na Play Store",
+    "app na App Store",
+    "startup do zero",
     "Matheus Gobbi",
     "Gregório Galindo"
-  ]
+  ],
+  "duracoes_apps": [
+    "short",
+    "medium"
+  ],
+  "apify_a_cada_dias": 2
 }
