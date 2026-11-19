@@ -19,9 +19,7 @@
     "método pomodoro",
     "foco nos estudos",
     "IA para estudar",
-    "app de estudos",
-    "build in public",
-    "criar app com IA"
+    "app de estudos"
   ],
   "dias": 14,
   "views_minimas": 5000,
@@ -40,7 +38,13 @@
       "concurso público",
       "dicas de estudo"
     ],
-    "por_busca": 4
+    "por_busca": 4,
+    "buscas_apps": [
+      "build in public",
+      "criar app com IA",
+      "criando um SaaS",
+      "fundador de startup"
+    ]
   },
   "instagram": {
     "ator": "apify~instagram-hashtag-scraper",
@@ -52,6 +56,25 @@
     ],
     "por_hashtag": 4,
     "ator_perfis": "apify~instagram-profile-scraper",
-    "perfis_para_multiplicador": 8
-  }
+    "perfis_para_multiplicador": 8,
+    "hashtags_apps": [
+      "buildinpublic",
+      "indiehacker",
+      "saas",
+      "startupbrasil"
+    ]
+  },
+  "temas_apps": [
+    "build in public",
+    "criar app com IA",
+    "como criei meu app",
+    "criar um SaaS",
+    "app que fatura",
+    "indie hacker Brasil",
+    "fundador de startup",
+    "lançando meu app",
+    "SaaS do zero",
+    "Matheus Gobbi",
+    "Gregório Galindo"
+  ]
 }

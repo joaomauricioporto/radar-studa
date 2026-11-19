@@ -205,6 +205,7 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
 
     <section class="filtros" aria-label="Filtros">
       <div class="linha-filtros">
+        <div class="abas" id="abas-nicho" role="tablist" aria-label="Nicho"></div>
         <div class="abas" id="abas-redes" role="tablist" aria-label="Redes"></div>
         <div class="abas so-desktop" role="tablist" aria-label="Seção">
           <button data-view="todos">Todos</button>
@@ -284,7 +285,7 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
 
   var estado = {
     dados: null, erroCarga: false,
-    view: "todos", rede: "todas", tema: "todos",
+    view: "todos", rede: "todas", tema: "todos", nicho: guarda.ler("nicho", "estudos"),
     periodo: guarda.ler("periodo", 14), ordem: guarda.ler("ordem", "multiplicador"),
     busca: "", salvos: guarda.ler("salvos", {})
   };
@@ -355,6 +356,7 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
       base = videos().filter(function (v) { return diasNoAr(v) <= estado.periodo + 0.5; });
       if (estado.view === "novos") base = base.filter(function (v) { return v.novo; });
     }
+    if (estado.view !== "salvos") base = base.filter(function (v) { return (v.nicho || "estudos") === estado.nicho; });
     var porRede = base;
     if (estado.rede !== "todas") base = base.filter(function (v) { return v.rede === estado.rede; });
     var porTema = base;
@@ -407,8 +409,10 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
   }
 
   function temasTodos() {
-    var d = estado.dados || {}, lista = (d.temas || []).slice();
-    (d.temas_tiktok || []).concat(d.temas_instagram || []).forEach(function (t) { if (!lista.some(function (x) { return x.toLowerCase() === t.toLowerCase(); })) lista.push(t); });
+    var d = estado.dados || {}, apps = estado.nicho === "apps";
+    var lista = ((apps ? d.temas_apps : d.temas) || []).slice();
+    var extra = apps ? (d.temas_tiktok_apps || []).concat(d.temas_instagram_apps || []) : (d.temas_tiktok || []).concat(d.temas_instagram || []);
+    extra.forEach(function (t) { if (!lista.some(function (x) { return x.toLowerCase() === t.toLowerCase(); })) lista.push(t); });
     return lista;
   }
 
@@ -466,6 +470,9 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
     document.getElementById("periodo").value = String(estado.periodo);
     var porRede = { todas: r.porRede.length, instagram: 0, tiktok: 0, youtube: 0, shorts: 0 };
     r.porRede.forEach(function (v) { porRede[v.rede] = (porRede[v.rede] || 0) + 1; });
+    document.getElementById("abas-nicho").innerHTML =
+      "<button data-nicho=\"estudos\" class=\"" + (estado.nicho === "estudos" ? "ativo" : "") + "\">Estudos e concursos</button>" +
+      "<button data-nicho=\"apps\" class=\"" + (estado.nicho === "apps" ? "ativo" : "") + "\">Criadores de apps e SaaS</button>";
     var abas = "<button data-rede=\"todas\" class=\"" + (estado.rede === "todas" ? "ativo" : "") + "\">Todas as redes <i>" + porRede.todas + "</i></button>";
     ["instagram", "tiktok", "youtube", "shorts"].forEach(function (k) {
       abas += "<button data-rede=\"" + k + "\" class=\"" + (estado.rede === k ? "ativo" : "") + "\">" + icone(k) + REDES[k].nome + " <i>" + porRede[k] + "</i></button>";
@@ -637,8 +644,9 @@ input[type=search]{min-width:200px;flex:1;max-width:320px}
 
   // ---------- eventos ----------
   document.addEventListener("click", function (e) {
-    var alvo = e.target.closest("[data-acao],[data-tema],[data-view],[data-rede]");
+    var alvo = e.target.closest("[data-acao],[data-tema],[data-view],[data-rede],[data-nicho]");
     if (!alvo) { if (e.target.id === "fundo") fechar(); return; }
+    if (alvo.hasAttribute("data-nicho")) { estado.nicho = alvo.getAttribute("data-nicho"); guarda.gravar("nicho", estado.nicho); estado.tema = "todos"; estado.rede = "todas"; render(); return; }
     if (alvo.hasAttribute("data-tema")) { estado.tema = alvo.getAttribute("data-tema"); renderFiltrado(); return; }
     if (alvo.hasAttribute("data-rede")) { estado.rede = alvo.getAttribute("data-rede"); estado.tema = "todos"; renderFiltrado(); return; }
     if (alvo.hasAttribute("data-view") && !alvo.hasAttribute("data-acao")) {

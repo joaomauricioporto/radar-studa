@@ -140,7 +140,7 @@ def buscar_youtube(cfg, chave, agora):
         return []
     desde = (agora - timedelta(days=cfg["dias"])).strftime("%Y-%m-%dT%H:%M:%SZ")
     temas_por_video = {}
-    for tema in cfg["temas"]:
+    for tema in cfg["temas"] + cfg.get("temas_apps", []):
         for duracao in duracoes:
             r = youtube("search", chave, part="id", q=tema, type="video", order="viewCount",
                         publishedAfter=desde, regionCode=cfg["regiao"], relevanceLanguage=cfg["idioma"],
@@ -242,8 +242,9 @@ def data_do_item(it):
 # ---------- TikTok ----------
 def buscar_tiktok(cfg, token, agora):
     tt = cfg["tiktok"]
+    buscas = tt["buscas"] + tt.get("buscas_apps", [])
     entrada = {
-        "searchQueries": tt["buscas"],
+        "searchQueries": buscas,
         "resultsPerPage": tt["por_busca"],
         "searchSection": "/video",
         "proxyCountryCode": cfg["regiao"],
@@ -273,7 +274,7 @@ def buscar_tiktok(cfg, token, agora):
         seguidores = inteiro(autor.get("fans"))
         texto = (it.get("text") or "").strip()
         consulta = it.get("searchQuery") or it.get("input") or ""
-        temas = [consulta] if consulta in tt["buscas"] else [b for b in tt["buscas"] if b.lower() in texto.lower()][:2]
+        temas = [consulta] if consulta in buscas else [b for b in buscas if b.lower() in texto.lower()][:2]
         nome = autor.get("name") or ""
         item = {
             "id": "tt" + vid,
@@ -303,7 +304,8 @@ def buscar_tiktok(cfg, token, agora):
 # ---------- Instagram ----------
 def buscar_instagram(cfg, token, agora):
     ig = cfg["instagram"]
-    itens = apify(ig["ator"], {"hashtags": ig["hashtags"], "resultsType": "reels", "resultsLimit": ig["por_hashtag"]}, token)
+    hashtags = ig["hashtags"] + ig.get("hashtags_apps", [])
+    itens = apify(ig["ator"], {"hashtags": hashtags, "resultsType": "reels", "resultsLimit": ig["por_hashtag"]}, token)
     limite = agora - timedelta(days=cfg["dias"])
     saida, vistos_aqui = [], set()
     for it in itens:
@@ -322,7 +324,7 @@ def buscar_instagram(cfg, token, agora):
         dono = it.get("ownerUsername") or ""
         hashtags_do_post = [h.lower().lstrip("#") for h in (it.get("hashtags") or [])]
         origem = (it.get("hashtag") or it.get("searchTerm") or it.get("inputUrl") or "").lower()
-        temas = [h for h in ig["hashtags"] if h.lower() in origem] or [h for h in ig["hashtags"] if h.lower() in hashtags_do_post][:2]
+        temas = [h for h in hashtags if h.lower() in origem] or [h for h in hashtags if h.lower() in hashtags_do_post][:2]
         saida.append({
             "id": "ig" + codigo,
             "codigo": codigo,
@@ -435,6 +437,11 @@ def main():
         if publicado >= inicio_do_periodo:
             videos.append(v)
 
+    temas_apps = {t.lower() for t in cfg.get("temas_apps", []) + cfg.get("tiktok", {}).get("buscas_apps", [])}
+    temas_apps |= {"#" + h.lower() for h in cfg.get("instagram", {}).get("hashtags_apps", [])}
+    for v in videos:
+        v["nicho"] = "apps" if any(t.lower() in temas_apps for t in v.get("temas", [])) else "estudos"
+
     hoje = agora.strftime("%Y-%m-%d")
     for v in videos:
         antes = vistos.get(v["id"])
@@ -463,6 +470,9 @@ def main():
         "temas": cfg["temas"],
         "temas_tiktok": cfg.get("tiktok", {}).get("buscas", []),
         "temas_instagram": ["#" + h for h in cfg.get("instagram", {}).get("hashtags", [])],
+        "temas_apps": cfg.get("temas_apps", []),
+        "temas_tiktok_apps": cfg.get("tiktok", {}).get("buscas_apps", []),
+        "temas_instagram_apps": ["#" + h for h in cfg.get("instagram", {}).get("hashtags_apps", [])],
         "redes": redes,
         "dias": cfg["dias"],
         "hora_da_busca": cfg.get("hora_da_busca", "08:00"),
